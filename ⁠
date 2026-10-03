@@ -1,0 +1,311 @@
+local WindUI = loadstring(game:HttpGet("https://raw.githubusercontent.com/Footagesus/WindUI/main/dist/main.lua"))()
+
+local HttpService = game:GetService("HttpService")
+local RunService = game:GetService("RunService")
+local Lighting = game:GetService("Lighting")
+
+--// SAVE FILE
+local SaveFile = "CustomShiftLock_Cursors.json"
+local SavedCustomCursors = {}
+
+if isfile and isfile(SaveFile) then
+    local Success, Data = pcall(function()
+        return HttpService:JSONDecode(readfile(SaveFile))
+    end)
+    if Success and type(Data) == "table" then
+        SavedCustomCursors = Data
+    end
+end
+
+local function SaveCustomCursors()
+    if writefile then
+        writefile(SaveFile, HttpService:JSONEncode(SavedCustomCursors))
+    end
+end
+
+local Window = WindUI:CreateWindow({
+    Title = "Kuromi's Hub (fifikamahh)",
+    Icon = "rbxassetid://110506104090701", -- استبدل هذا الرقم بالـ ID الخاص بصورتك إذا أردت
+    Author = "fifikamahh",
+    Folder = "WindUI",
+    Size = UDim2.fromOffset(520, 400),
+    Transparent = true,
+    Theme = "Dark",
+})
+
+-- جعل أيقونة النافذة دائرية الشكل
+task.spawn(function()
+    pcall(function()
+        for _, gui in pairs(game.CoreGui:GetDescendants()) do
+            if gui:IsA("ImageButton") and gui.Image == "rbxassetid://110506104090701" then
+                gui.UICorner.CornerRadius = UDim.new(1, 0)
+            end
+        end
+    end)
+end)
+
+local CursorTab = Window:Tab({
+    Title = "Cursor",
+    Icon = "mouse-pointer"
+})
+
+local SkyboxTab = Window:Tab({
+    Title = "Skybox",
+    Icon = "cloud"
+})
+
+local SettingsTab = Window:Tab({
+    Title = "Settings",
+    Icon = "settings"
+})
+
+local Enabled = false
+local SpinEnabled = false
+local SpinSpeed = 5
+local SpinDirection = "Right"
+local Rotation = 0
+local SelectedCursor = "rbxassetid://77334061708375"
+
+local DefaultImages = {
+    "rbxasset://textures/MouseLockedCursor.png",
+    "rbxasset://textures/MouseLockedCursor@2x.png"
+}
+
+local ShiftlockObjects = {}
+
+local CursorTable = {
+    ["rainbow"] = "rbxassetid://77334061708375",
+    ["black"] = "rbxassetid://125544346072635",
+    ["red cursor"] = "rbxassetid://92409175012847",
+    ["white cursor"] = "rbxassetid://101955011342491",
+    ["purple"] = "rbxassetid://105227484929270",
+    ["Cinnamoroll"] = "rbxassetid://110506104090701",
+}
+
+for Name, Id in pairs(SavedCustomCursors) do
+    CursorTable[Name] = Id
+end
+
+local function ScanShiftLock()
+    ShiftlockObjects = {}
+    for _,v in pairs(game:GetDescendants()) do
+        if v:IsA("ImageLabel") or v:IsA("ImageButton") then
+            if table.find(DefaultImages, v.Image)
+            or string.find(string.lower(v.Name), "shift")
+            or string.find(string.lower(v.Name), "lock") then
+                table.insert(ShiftlockObjects, v)
+            end
+        end
+    end
+end
+
+local function ApplySize(v)
+    if v.Image == "rbxassetid://125544346072635" then
+        v.Size = UDim2.new(0, 26, 0, 26)
+    else
+        v.Size = UDim2.new(0, 32, 0, 32)
+    end
+    v.ImageTransparency = 0
+    v.BackgroundTransparency = 1
+    v.ScaleType = Enum.ScaleType.Fit
+end
+
+local function UpdateShiftLock()
+    for _,v in pairs(ShiftlockObjects) do
+        if v and v.Parent then
+            if Enabled then
+                v.Image = SelectedCursor
+                ApplySize(v)
+            else
+                v.Image = "rbxasset://textures/MouseLockedCursor.png"
+                v.Rotation = 0
+                v.Size = UDim2.new(0,32,0,32)
+            end
+        end
+    end
+end
+
+RunService.RenderStepped:Connect(function()
+    if SpinEnabled and Enabled then
+        if SpinDirection == "Right" then
+            Rotation += SpinSpeed
+        else
+            Rotation -= SpinSpeed
+        end
+        for _,v in pairs(ShiftlockObjects) do
+            if v and v.Parent then
+                v.Rotation = Rotation
+                ApplySize(v)
+            end
+        end
+    end
+end)
+
+ScanShiftLock()
+
+--// CURSOR TAB CONTENT
+CursorTab:Toggle({
+    Title = "Turn Custom ShiftLock",
+    Default = false,
+    Callback = function(Value)
+        Enabled = Value
+        UpdateShiftLock()
+    end
+})
+
+CursorTab:Paragraph({
+    Title = "Custom Cursor Style",
+    Desc = "Click a cursor below to select it:"
+})
+
+for Name, AssetId in pairs(CursorTable) do
+    CursorTab:Button({
+        Title = "Select: " .. Name,
+        Icon = AssetId,
+        Callback = function()
+            SelectedCursor = AssetId
+            UpdateShiftLock()
+            Window:Notify({
+                Title = "Cursor Changed",
+                Content = "Selected: " .. Name,
+                Duration = 2
+            })
+        end
+    })
+end
+
+--// SKYBOX TAB CONTENT
+SkyboxTab:Paragraph({
+    Title = "Skybox Library",
+    Desc = "Choose a custom sky style:"
+})
+
+SkyboxTab:Button({
+    Title = "Choco cat Sky",
+    Callback = function()
+        local sky = Lighting:FindFirstChildOfClass("Sky")
+        if not sky then
+            sky = Instance.new("Sky")
+            sky.Parent = Lighting
+        end
+        sky.SkyboxDn = "rbxassetid://111396050686595"
+        sky.SkyboxUp = "rbxassetid://103401249117757"
+        sky.SkyboxRt = "rbxassetid://85696704731034"
+        sky.SkyboxBk = "rbxassetid://97635485139959"
+        sky.SkyboxLf = "rbxassetid://122970509731331"
+        sky.SkyboxFt = "rbxassetid://126080537905263"
+        Window:Notify({ Title = "Skybox", Content = "Loaded Choco cat!", Duration = 2 })
+    end
+})
+
+SkyboxTab:Button({
+    Title = "Purple devy Sky",
+    Callback = function()
+        for _, v in ipairs(Lighting:GetChildren()) do
+            if v:IsA("Sky") then v:Destroy() end
+        end
+        local sky = Instance.new("Sky")
+        sky.SkyboxBk = "rbxassetid://110258526859280"
+        sky.SkyboxDn = "rbxassetid://135958935216220"
+        sky.SkyboxFt = "rbxassetid://76761081931241"
+        sky.SkyboxLf = "rbxassetid://124933642603096"
+        sky.SkyboxRt = "rbxassetid://87057567180787"
+        sky.SkyboxUp = "rbxassetid://102863190872817"
+        sky.StarCount = 0
+        sky.SunAngularSize = 0
+        sky.MoonAngularSize = 0
+        sky.Parent = Lighting
+        Window:Notify({ Title = "Skybox", Content = "Loaded Purple devy!", Duration = 2 })
+    end
+})
+
+SkyboxTab:Button({
+    Title = "Pusheen sky 2.0",
+    Callback = function()
+        for _,v in ipairs(Lighting:GetChildren()) do
+            if v:IsA("Sky") then v:Destroy() end
+        end
+        local sky = Instance.new("Sky")
+        sky.Name = "Pusheen sky 2.0"
+        sky.SkyboxBk = "rbxassetid://89192509171418"
+        sky.SkyboxDn = "rbxassetid://73864340815280"
+        sky.SkyboxFt = "rbxassetid://79517340188889"
+        sky.SkyboxLf = "rbxassetid://137786052451039"
+        sky.SkyboxRt = "rbxassetid://130733293493264"
+        sky.SkyboxUp = "rbxassetid://81872996935460"
+        sky.StarCount = 3000
+        sky.SunAngularSize = 0
+        sky.MoonAngularSize = 0
+        sky.Parent = Lighting
+        Window:Notify({ Title = "Skybox", Content = "Loaded Pusheen sky 2.0!", Duration = 2 })
+    end
+})
+
+SkyboxTab:Button({
+    Title = "Aurora Sky",
+    Callback = function()
+        for _,v in ipairs(Lighting:GetChildren()) do
+            if v:IsA("Sky") then v:Destroy() end
+        end
+        local sky = Instance.new("Sky")
+        sky.Name = "aurora sky"
+        sky.SkyboxBk = "rbxassetid://108060153506591"
+        sky.SkyboxDn = "rbxassetid://100635710626156"
+        sky.SkyboxFt = "rbxassetid://99410162887331"
+        sky.SkyboxLf = "rbxassetid://106585907106620"
+        sky.SkyboxRt = "rbxassetid://107424338373724"
+        sky.SkyboxUp = "rbxassetid://121629677817605"
+        sky.StarCount = 3000
+        sky.SunAngularSize = 0
+        sky.MoonAngularSize = 0
+        sky.Parent = Lighting
+        Window:Notify({ Title = "Skybox", Content = "Loaded Aurora Sky!", Duration = 2 })
+    end
+})
+
+SkyboxTab:Button({
+    Title = "Kuromi Sky",
+    Callback = function()
+        for _,v in ipairs(Lighting:GetChildren()) do
+            if v:IsA("Sky") then v:Destroy() end
+        end
+        local sky = Instance.new("Sky")
+        sky.Name = "DevyKuromiSky"
+        sky.SkyboxBk = "rbxassetid://112890939214100"
+        sky.SkyboxDn = "rbxassetid://94107390237205"
+        sky.SkyboxFt = "rbxassetid://95781650997013"
+        sky.SkyboxLf = "rbxassetid://87354574244067"
+        sky.SkyboxRt = "rbxassetid://72480480156673"
+        sky.SkyboxUp = "rbxassetid://93131493205162"
+        sky.StarCount = 3000
+        sky.SunAngularSize = 21
+        sky.MoonAngularSize = 11
+        sky.Parent = Lighting
+        Window:Notify({ Title = "Skybox", Content = "Loaded Kuromi Sky!", Duration = 2 })
+    end
+})
+
+--// SETTINGS TAB
+SettingsTab:Toggle({
+    Title = "Spin ShiftLock",
+    Default = false,
+    Callback = function(Value)
+        SpinEnabled = Value
+    end
+})
+
+SettingsTab:Slider({
+    Title = "Spin Speed",
+    Value = { Min = 0.1, Max = 500, Default = 5 },
+    Callback = function(Value)
+        SpinSpeed = Value
+    end
+})
+
+SettingsTab:Dropdown({
+    Title = "Spin Direction",
+    Values = { "Left", "Right" },
+    Callback = function(Value)
+        SpinDirection = Value
+    end
+})
